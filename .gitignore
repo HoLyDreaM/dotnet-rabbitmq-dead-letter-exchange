@@ -42,8 +42,8 @@ artifacts/
 
 # Secrets / local config
 **/appsettings.json
+**/appsettings.*.json
 !**/appsettings.example.json
-**/appsettings.*.local.json
 **/secrets.json
 .env
 .env.*

@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\RabbitMqDlx.Shared\RabbitMqDlx.Shared.csproj" />
+    <ProjectReference Include="..\..\src\RabbitMqDlx.Producer\RabbitMqDlx.Producer.csproj" />
   </ItemGroup>
 
 </Project>

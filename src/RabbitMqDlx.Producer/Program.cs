@@ -85,7 +85,8 @@ public sealed class PublishMessageRequest
     [MaxLength(128)]
     public string CustomerId { get; set; } = string.Empty;
 
-    [Range(typeof(decimal), "0.01", "999999999")]
+    // double overload: string Range(typeof(decimal), "0.01", ...) tr-TR kültüründe 500 üretir
+    [Range(0.01, 999999999)]
     public decimal Amount { get; set; }
 
     [Required]
