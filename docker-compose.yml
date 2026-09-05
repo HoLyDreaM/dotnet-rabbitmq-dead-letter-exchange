@@ -1,3 +1,6 @@
+# UYARI: guest/guest ve loopback_users.guest=false yalnızca yerel demo içindir.
+# Production'da ayrı kullanıcı, güçlü parola, TLS ve ağ kısıtı kullanın. Gerçek secret eklemeyin.
+
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -6,11 +9,80 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    # guest yalnızca localhost için uygundur; production'da ayrı kullanıcı kullanın.
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    volumes:
+      - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # İsteğe bağlı: docker compose --profile apps up -d --build
+  producer:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: src/RabbitMqDlx.Producer/Dockerfile
+    image: rabbitmq-dlx-producer:local
+    container_name: rabbitmq-dlx-producer
+    ports:
+      - "${PRODUCER_PORT:-5080}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: ${RABBITMQ_USER:-guest}
+      RabbitMq__Password: ${RABBITMQ_PASS:-guest}
+      RabbitMq__VirtualHost: "/"
+      RabbitMq__MaxRetry: "3"
+      RabbitMq__RetryTtlMilliseconds: "5000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # İsteğe bağlı: docker compose --profile apps up -d --build
+  consumer:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: src/RabbitMqDlx.Consumer/Dockerfile
+    image: rabbitmq-dlx-consumer:local
+    container_name: rabbitmq-dlx-consumer
+    environment:
+      DOTNET_ENVIRONMENT: ${DOTNET_ENVIRONMENT:-Development}
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: ${RABBITMQ_USER:-guest}
+      RabbitMq__Password: ${RABBITMQ_PASS:-guest}
+      RabbitMq__VirtualHost: "/"
+      RabbitMq__MaxRetry: "3"
+      RabbitMq__RetryTtlMilliseconds: "5000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  rabbitmq_data:

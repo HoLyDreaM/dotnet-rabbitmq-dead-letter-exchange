@@ -1,5 +1,28 @@
 # Değişiklik Günlüğü
 
+## [0.1.5] — 2026-09-06
+
+### Düzeltmeler / dokümantasyon
+
+- Solution: `RabbitMqDlx.Tests` yanlışlıkla `src` solution folder altında nested’di; `tests` solution folder’a taşındı (disk yolu `tests/` zaten doğruydu).
+- README: smoke senaryoları tablosu ve Management UI / beklenen log-kuyruk çıktıları netleştirildi.
+
+## [0.1.4] — 2026-09-06
+
+### CI
+
+- `.github/workflows/ci.yml` eklendi: `main` için push/PR; `setup-dotnet` **8.0.x**; solution üzerinde restore → build → test.
+- README’ye kısa CI notu eklendi.
+
+## [0.1.3] — 2026-09-06
+
+### Docker / DevOps
+
+- Producer ve Consumer için multi-stage Dockerfile eklendi (`mcr.microsoft.com/dotnet/sdk:8.0` / `aspnet|runtime:8.0`; preview/9/10 yok).
+- `docker-compose.yml`: RabbitMQ Management korundu; isteğe bağlı `producer` / `consumer` servisleri (`profile: apps`, `depends_on` + healthy).
+- Demo için `docker/rabbitmq/rabbitmq.conf` (`loopback_users.guest = false`) ve `.env.example` eklendi; `.env` gitignore’da kalır.
+- README Docker bölümü güncellendi (`d:\SoftWare\dotnet-rabbitmq-dead-letter-exchange`).
+
 ## [0.1.2] — 2026-09-06
 
 ### Değişiklik

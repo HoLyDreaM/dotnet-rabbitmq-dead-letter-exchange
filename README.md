@@ -65,11 +65,13 @@ flowchart LR
 
 ```text
 dotnet-rabbitmq-dead-letter-exchange.sln
-src/RabbitMqDlx.Producer/     Minimal API — POST /api/messages, GET /health
-src/RabbitMqDlx.Consumer/     Worker — main kuyruk tüketimi
+src/RabbitMqDlx.Producer/     Minimal API — POST /api/messages, GET /health (+ Dockerfile)
+src/RabbitMqDlx.Consumer/     Worker — main kuyruk tüketimi (+ Dockerfile)
 src/RabbitMqDlx.Shared/       Models, Options, Topology, RetryDecision, Headers, LogEvents
 tests/RabbitMqDlx.Tests/      Broker gerektirmeyen birim testleri
-docker-compose.yml
+docker-compose.yml            RabbitMQ + isteğe bağlı producer/consumer (profile: apps)
+docker/rabbitmq/              Demo RabbitMQ conf (guest uzak bağlantı — yalnız local)
+.env.example                  Compose placeholder’ları (secret yok)
 ```
 
 ## API
@@ -114,34 +116,81 @@ Linux / macOS:
 cp appsettings.example.json appsettings.json
 ```
 
-### RabbitMQ
+### Docker (RabbitMQ + isteğe bağlı uygulamalar)
+
+> **Uyarı:** `guest` / `guest` ve `loopback_users.guest = false` yalnızca **yerel demo** içindir. Production’da ayrı kullanıcı, güçlü parola, TLS ve ağ kısıtı kullanın. `.env` commit edilmez; gerçek secret eklemeyin.
+
+İsteğe bağlı ortam dosyası:
 
 ```bash
 cd d:\SoftWare\dotnet-rabbitmq-dead-letter-exchange
-docker compose up -d
+copy .env.example .env
 ```
 
-Management UI: http://localhost:15672 (`guest` / `guest` — yalnızca yerel).
+Yalnız broker (host’ta `dotnet run` için):
 
-### Consumer
+```bash
+cd d:\SoftWare\dotnet-rabbitmq-dead-letter-exchange
+docker compose up -d rabbitmq
+```
+
+Management UI: http://localhost:15672 (`guest` / `guest` — yalnızca yerel).  
+AMQP: `localhost:5672`
+
+Tam yığın (RabbitMQ + Producer + Consumer; imajlar **.NET 8** multi-stage):
+
+```bash
+cd d:\SoftWare\dotnet-rabbitmq-dead-letter-exchange
+docker compose --profile apps up -d --build
+```
+
+- Producer API: http://localhost:5080 (`GET /health`, `POST /api/messages`)
+- Consumer: aynı Docker ağında `rabbitmq` host adına bağlanır
+- Durdurma: `docker compose --profile apps down`
+
+Doğrulama örnekleri:
+
+```bash
+docker compose config
+docker compose ps
+docker compose exec rabbitmq rabbitmq-diagnostics -q ping
+```
+
+### Consumer (host)
 
 ```bash
 cd d:\SoftWare\dotnet-rabbitmq-dead-letter-exchange\src\RabbitMqDlx.Consumer
 dotnet run
 ```
 
-### Producer
+### Producer (host)
 
 ```bash
 cd d:\SoftWare\dotnet-rabbitmq-dead-letter-exchange\src\RabbitMqDlx.Producer
 dotnet run
 ```
 
-Varsayılan adres genelde `http://localhost:5000` veya launchSettings’teki porttur.
+Varsayılan adres `launchSettings.json` ile genelde `http://localhost:5080`dır.
 
-### Örnek curl
+### Smoke senaryoları (broker + consumer + producer)
 
-Başarılı iş:
+Önkoşul: RabbitMQ ayakta (`docker compose up -d rabbitmq`), Consumer ve Producer host’ta `dotnet run` ile çalışıyor (veya `docker compose --profile apps up -d --build`).
+
+| # | Senaryo | İstek | Beklenen |
+|---|---------|-------|----------|
+| 1 | Normal ACK | `failureMode: None` | Consumer işler + **Ack**; `demo.orders.main` / DLQ boş kalır |
+| 2 | Transient → retry | `failureMode: Transient` | Consumer `PublishToRetry` + Ack; mesaj `demo.orders.retry.5s` (TTL 5s) → ana kuyruğa döner; `MaxRetry` aşılınca DLQ |
+| 3 | Poison → DLQ | `failureMode: Poison` | Consumer doğrudan `PublishToDlq` + Ack; mesaj `demo.orders.dlq` |
+
+Management UI’da kuyrukları izleyin: http://localhost:15672 → Queues (`demo.orders.main`, `demo.orders.retry.5s`, `demo.orders.dlq`).
+
+Sağlık:
+
+```bash
+curl -s http://localhost:5080/health
+```
+
+1) Normal mesaj (ACK):
 
 ```bash
 curl -s -X POST http://localhost:5080/api/messages ^
@@ -149,7 +198,7 @@ curl -s -X POST http://localhost:5080/api/messages ^
   -d "{\"customerId\":\"c-1\",\"amount\":10,\"failureMode\":\"None\"}"
 ```
 
-Transient (TTL retry döngüsü, MaxRetry sonrası DLQ):
+2) Transient (TTL retry; MaxRetry sonrası DLQ):
 
 ```bash
 curl -s -X POST http://localhost:5080/api/messages ^
@@ -157,7 +206,9 @@ curl -s -X POST http://localhost:5080/api/messages ^
   -d "{\"customerId\":\"c-2\",\"amount\":20,\"failureMode\":\"Transient\"}"
 ```
 
-Poison (doğrudan DLQ):
+Consumer logunda `Transient → retry kuyruğu` ve birkaç döngü sonra `MaxRetry aşıldı → DLQ` beklenir. UI’da `demo.orders.retry.5s` Ready/Unacked geçici artar, ardından `demo.orders.dlq` artar.
+
+3) Poison (doğrudan DLQ):
 
 ```bash
 curl -s -X POST http://localhost:5080/api/messages ^
@@ -165,11 +216,7 @@ curl -s -X POST http://localhost:5080/api/messages ^
   -d "{\"customerId\":\"c-3\",\"amount\":30,\"failureMode\":\"Poison\"}"
 ```
 
-Sağlık:
-
-```bash
-curl -s http://localhost:5080/health
-```
+Consumer logunda `Poison → DLQ`; UI’da `demo.orders.dlq` Ready artar. **`requeue=true` kullanılmaz.**
 
 > Port, `launchSettings.json` veya `--urls` ile değişebilir. `dotnet run` çıktısındaki dinleme adresini kullanın.
 
@@ -181,6 +228,10 @@ dotnet test
 ```
 
 Broker gerekmez.
+
+## CI
+
+`main` dalına **push** ve **pull_request** için GitHub Actions workflow’u (`.github/workflows/ci.yml`) çalışır: .NET SDK **8.0.x**, ardından `dotnet restore` → `dotnet build --no-restore` → `dotnet test --no-build` (`dotnet-rabbitmq-dead-letter-exchange.sln`). Secret veya registry adımı yoktur; yalnızca birim testleri (broker gerekmez).
 
 ## Production’a bırakılan noktalar (demo dışı)
 
