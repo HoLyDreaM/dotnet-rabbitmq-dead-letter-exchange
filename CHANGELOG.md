@@ -1,5 +1,13 @@
 # Değişiklik Günlüğü
 
+## [0.1.2] — 2026-09-06
+
+### Değişiklik
+
+- Hedef çerçeve `.NET 8 LTS` / `net8.0` olarak standartlaştırıldı.
+- Microsoft.Extensions.* paketleri 8.0.x stabil sürümlere çekildi.
+- `global.json` ile SDK 8 roll-forward eklendi.
+
 ## [0.1.1] — 2026-09-06
 
 ### Düzeltmeler

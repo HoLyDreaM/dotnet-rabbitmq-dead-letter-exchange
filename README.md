@@ -4,7 +4,7 @@
 
 Bu depo, RabbitMQ üzerinde **Dead Letter Exchange (DLX)**, **TTL ile gecikmeli retry** ve **uygulama düzeyinde sınırlı yeniden deneme (Yol B)** kalıplarını gösteren eğitim örneğidir. Gerçek müşteri kodu veya gizli yapılandırma içermez; açık kaynak paylaşımına uygundur.
 
-Hedef çerçeve: **.NET 9 / `net9.0`**. İstemci: **RabbitMQ.Client 7.x** (stabil async API).
+Hedef çerçeve: **.NET 8 LTS / `net8.0`**. İstemci: **RabbitMQ.Client 7.x** (stabil async API).
 
 İlgili makale: [RabbitMQ Dead Letter Exchange — 7 Adımda Güvenli Mesaj Hata Yönetimi](https://www.mehmet-ozdemir.com.tr/rabbitmq-dead-letter-exchange-7-adimda-guvenli-mesaj-hata-yonetimi/)
 
@@ -93,7 +93,7 @@ docker-compose.yml
 
 ### Gereksinimler
 
-- .NET SDK **9.0** (`net9.0`)
+- .NET SDK **8.0** (`net8.0`)
 - Docker (RabbitMQ için)
 
 ### Yapılandırma
