@@ -1,5 +1,12 @@
 # Değişiklik Günlüğü
 
+## [0.1.6] — 2026-09-06
+
+### Güvenlik
+
+- `docker-compose.yml`: RabbitMQ (`5672`, `15672`) ve Producer portları `127.0.0.1` ile bind edildi (demo credential’ların LAN’a açılması riski azaltıldı).
+- README: localhost bind notu eklendi.
+
 ## [0.1.5] — 2026-09-06
 
 ### Düzeltmeler / dokümantasyon

@@ -6,8 +6,9 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq-dlx-demo
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      # Yalnız localhost — demo credential’ların LAN’a açılmasını engeller
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
@@ -36,7 +37,7 @@ services:
     image: rabbitmq-dlx-producer:local
     container_name: rabbitmq-dlx-producer
     ports:
-      - "${PRODUCER_PORT:-5080}:8080"
+      - "127.0.0.1:${PRODUCER_PORT:-5080}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080

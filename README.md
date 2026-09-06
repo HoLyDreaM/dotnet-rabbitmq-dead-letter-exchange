@@ -119,6 +119,8 @@ cp appsettings.example.json appsettings.json
 ### Docker (RabbitMQ + isteğe bağlı uygulamalar)
 
 > **Uyarı:** `guest` / `guest` ve `loopback_users.guest = false` yalnızca **yerel demo** içindir. Production’da ayrı kullanıcı, güçlü parola, TLS ve ağ kısıtı kullanın. `.env` commit edilmez; gerçek secret eklemeyin.
+>
+> Compose portları (`5672`, `15672`, Producer) `127.0.0.1` ile bağlanır; yalnızca bu makineden erişilir (LAN’a açık değildir).
 
 İsteğe bağlı ortam dosyası:
 
